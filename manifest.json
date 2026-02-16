@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Flow Auto Clicker",
+  "version": "1.0",
+  "description": "Google Labs Flowを開き、「新しいプロジェクト」ボタンを自動的にクリックします。",
+  "permissions": [
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://labs.google/*"
+  ],
+  "action": {
+    "default_title": "Flowを開く"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://labs.google/fx/ja/tools/flow*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
