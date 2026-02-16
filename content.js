@@ -94,6 +94,51 @@ async function runAutomation() {
         console.log("Flow Auto Clicker: Clicking 'Image' button...");
         imageBtn.click();
 
+        // ---------------------------------------------------------
+        // モデル選択機能 (Nano Banana Pro)
+        // ---------------------------------------------------------
+        console.log("Flow Auto Clicker: Attempting to select 'Nano Banana Pro'...");
+        try {
+            // 設定ボタンを開く (tuneアイコン)
+            const settingsBtn = await waitForElement("//button[.//i[contains(text(), 'tune')]]", true, 5000);
+            console.log("Flow Auto Clicker: Opening settings...");
+            settingsBtn.click();
+            await new Promise(r => setTimeout(r, 1000));
+
+            // モデルドロップダウンを開く ("モデル" テキストを含むボタン)
+            const modelDropdown = await waitForElement("//button[.//span[contains(text(), 'モデル')]]", true, 5000);
+            console.log("Flow Auto Clicker: Opening model dropdown...");
+            modelDropdown.click();
+            await new Promise(r => setTimeout(r, 2000)); // メニュー展開待ちを少し延長
+
+            // "Nano Banana Pro" を選択
+            // Radix UI等は role="menuitem" や role="option" を使うことが多いので優先して探す
+            const proOption = await waitForElement(
+                "//div[(@role='menuitem' or @role='option') and contains(., 'Nano Banana Pro')] | //span[contains(., 'Nano Banana Pro')]",
+                true,
+                5000
+            );
+
+            if (proOption) {
+                console.log("Flow Auto Clicker: Found 'Nano Banana Pro' option. Clicking...", proOption);
+                proOption.click();
+            } else {
+                console.warn("Flow Auto Clicker: 'Nano Banana Pro' option not found within timeout.");
+            }
+            await new Promise(r => setTimeout(r, 1000));
+
+            // 設定画面を閉じるために背景をクリック
+            console.log("Flow Auto Clicker: Closing settings...");
+            document.body.click();
+            await new Promise(r => setTimeout(r, 1000));
+
+        } catch (e) {
+            console.warn("Flow Auto Clicker: Model selection failed (using default):", e);
+            // 失敗時は設定メニューが開いたままの可能性があるので、念のためbodyクリックを試みる
+            try { document.body.click(); } catch (_) { }
+        }
+        // ---------------------------------------------------------
+
         console.log("Flow Auto Clicker: Waiting for textarea...");
         const textarea = await waitForElement("#PINHOLE_TEXT_AREA_ELEMENT_ID", false);
 
