@@ -57,13 +57,24 @@ function findElement(selector, isXpath) {
 
 
 
+
 /**
- * モデルを選択するヘルパー関数
+ * 設定（モデル・枚数）を変更するヘルパー関数
  * @param {string} modelName - 選択するモデル名
- * @returns {Promise<boolean>} - 成功したらtrue
+ * @param {number} targetImageCount - 生成枚数 (デフォルト1)
+ * @returns {Promise<boolean>} - モデル選択に成功したらtrue
  */
-async function selectModel(modelName) {
-    console.log(`Flow Auto Clicker: Attempting to select '${modelName}'...`);
+async function configureSettings(modelName, targetImageCount = 1) {
+    console.log(`Flow Auto Clicker: Attempting to configure settings (Model: ${modelName}, Count: ${targetImageCount})...`);
+
+    const closeSettings = async () => {
+        console.log("Flow Auto Clicker: Closing settings...");
+        document.body.click();
+        await new Promise(r => setTimeout(r, 1000));
+        // 念のためもう一度
+        try { document.body.click(); } catch (_) { }
+    };
+
     try {
         // 設定ボタンを開く (tuneアイコン)
         const settingsBtn = await waitForElement("//button[.//i[contains(text(), 'tune')]]", true, 5000);
@@ -71,6 +82,9 @@ async function selectModel(modelName) {
         settingsBtn.click();
         await new Promise(r => setTimeout(r, 1000));
 
+        // -------------------------------------------------
+        // 1. モデル選択
+        // -------------------------------------------------
         // モデルドロップダウンを開く ("モデル" テキストを含むボタン)
         const modelDropdown = await waitForElement("//button[.//span[contains(text(), 'モデル')]]", true, 5000);
         console.log("Flow Auto Clicker: Opening model dropdown...");
@@ -78,16 +92,16 @@ async function selectModel(modelName) {
         await new Promise(r => setTimeout(r, 2000)); // メニュー展開待ち
 
         // 指定されたモデルを選択
-        let xpath;
+        let modelXpath;
         if (modelName === "Nano Banana") {
             // "Nano Banana" の場合は "Pro" を含まないものを探す
-            xpath = `//div[(@role='menuitem' or @role='option') and contains(., '${modelName}') and not(contains(., 'Pro'))] | //span[contains(., '${modelName}') and not(contains(., 'Pro'))]`;
+            modelXpath = `//div[(@role='menuitem' or @role='option') and contains(., '${modelName}') and not(contains(., 'Pro'))] | //span[contains(., '${modelName}') and not(contains(., 'Pro'))]`;
         } else {
             // それ以外 (例: Nano Banana Pro) は普通に探す
-            xpath = `//div[(@role='menuitem' or @role='option') and contains(., '${modelName}')] | //span[contains(., '${modelName}')]`;
+            modelXpath = `//div[(@role='menuitem' or @role='option') and contains(., '${modelName}')] | //span[contains(., '${modelName}')]`;
         }
 
-        const modelOption = await waitForElement(xpath, true, 5000).catch(() => null);
+        const modelOption = await waitForElement(modelXpath, true, 5000).catch(() => null);
 
         if (modelOption) {
             console.log(`Flow Auto Clicker: Found '${modelName}' option. Clicking...`);
@@ -97,15 +111,53 @@ async function selectModel(modelName) {
         }
         await new Promise(r => setTimeout(r, 1000));
 
-        // 設定画面を閉じるために背景をクリック
-        console.log("Flow Auto Clicker: Closing settings...");
-        document.body.click();
-        await new Promise(r => setTimeout(r, 1000));
+        // -------------------------------------------------
+        // 2. 枚数選択 ("プロンプトごとの出力")
+        // -------------------------------------------------
+        console.log(`Flow Auto Clicker: Attempting to set image count to ${targetImageCount}...`);
+        try {
+            // "プロンプトごとの出力" を含むボタンまたはその周辺のボタンを探す
+            // Many UI frameworks put the label inside the button or near it.
+            const countDropdown = await waitForElement("//button[.//span[contains(text(), 'プロンプトごとの出力')]]", true, 3000);
+            if (countDropdown) {
+                countDropdown.click();
+                await new Promise(r => setTimeout(r, 1000));
 
-        return !!modelOption;
+                // 数値のオプションを選択 (例: "1")
+                // 複数のパターンで探す
+                const countXpath = [
+                    `//div[@role='menuitem' and .//span[text()='${targetImageCount}']]`, // span内の完全一致
+                    `//div[@role='menuitem' and text()='${targetImageCount}']`, // 直下のテキスト
+                    `//span[text()='${targetImageCount}']`, // 単純なspan
+                    `//*[text()='${targetImageCount}']` // 最終手段
+                ].join(" | ");
+
+                const countOption = await waitForElement(countXpath, true, 3000);
+
+                if (countOption) {
+                    console.log(`Flow Auto Clicker: Found count option '${targetImageCount}'. Clicking...`);
+                    countOption.click();
+                } else {
+                    console.warn(`Flow Auto Clicker: Count option '${targetImageCount}' not found.`);
+                }
+                await new Promise(r => setTimeout(r, 1000));
+            } else {
+                console.warn("Flow Auto Clicker: Image count dropdown not found.");
+            }
+        } catch (e) {
+            console.warn("Flow Auto Clicker: Failed to set image count:", e);
+        }
+
+        // -------------------------------------------------
+        // 設定画面を閉じる
+        // -------------------------------------------------
+        await closeSettings();
+
+        return !!modelOption; // モデル選択の結果を返す
 
     } catch (e) {
-        console.warn(`Flow Auto Clicker: Model selection failed for ${modelName}:`, e);
+        console.warn(`Flow Auto Clicker: Settings configuration failed:`, e);
+        // エラー時も閉じる試みをする
         try { document.body.click(); } catch (_) { }
         return false;
     }
@@ -149,9 +201,9 @@ async function runAutomation() {
         imageBtn.click();
 
         // ---------------------------------------------------------
-        // モデル選択機能 (Nano Banana Pro) - 初期選択
+        // モデル・設定選択 (Nano Banana Pro, 1枚) - 初期選択
         // ---------------------------------------------------------
-        await selectModel('Nano Banana Pro');
+        await configureSettings('Nano Banana Pro', 1);
         // ---------------------------------------------------------
 
         console.log("Flow Auto Clicker: Waiting for textarea...");
@@ -211,8 +263,8 @@ async function runAutomation() {
         if (!generationStarted) {
             console.warn("Flow Auto Clicker: Generation did not start within timeout. Switching to Nano Banana...");
 
-            // フォールバック: Nano Banana を選択
-            const switched = await selectModel('Nano Banana');
+            // フォールバック: Nano Banana を選択 (枚数も1枚に設定)
+            const switched = await configureSettings('Nano Banana', 1);
 
             if (switched) {
                 console.log("Flow Auto Clicker: Switched to Nano Banana. Re-inputting text and retrying creation...");
