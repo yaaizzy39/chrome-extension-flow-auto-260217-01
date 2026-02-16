@@ -85,6 +85,10 @@ async function runAutomation() {
         // UIの更新待ち
         await new Promise(r => setTimeout(r, 1000));
 
+        // 事前に現在の画像数をカウント
+        const initialImgCount = document.querySelectorAll('img').length;
+        console.log(`Flow Auto Clicker: Initial image count: ${initialImgCount}`);
+
         console.log("Flow Auto Clicker: Clicking 'Create' button (Attempt 1)...");
         createBtn.click();
 
@@ -93,6 +97,49 @@ async function runAutomation() {
 
         console.log("Flow Auto Clicker: Clicking 'Create' button (Attempt 2)...");
         createBtn.click();
+
+        console.log("Flow Auto Clicker: Waiting for new image generation...");
+
+        // 画像が増えるのを待つ関数
+        const waitForNewImage = async (initialCount, timeout = 120000) => {
+            const startTime = Date.now();
+            while (Date.now() - startTime < timeout) {
+                const currentImages = document.querySelectorAll('img');
+                if (currentImages.length > initialCount) {
+                    return currentImages[currentImages.length - 1]; // 最後に追加された画像を返す
+                }
+                await new Promise(r => setTimeout(r, 1000));
+            }
+            throw new Error("Timeout waiting for new image");
+        };
+
+        const newImage = await waitForNewImage(initialImgCount);
+        console.log("Flow Auto Clicker: New image found. Simulating hover...", newImage);
+
+        // 新しい画像要素とその親要素にホバーイベントを送る
+        let target = newImage;
+        const hoverEvent = new MouseEvent('mouseover', { bubbles: true, cancelable: true, view: window });
+        const enterEvent = new MouseEvent('mouseenter', { bubbles: true, cancelable: true, view: window });
+        const moveEvent = new MouseEvent('mousemove', { bubbles: true, cancelable: true, view: window });
+
+        // 親要素を遡ってイベント発火
+        for (let i = 0; i < 7; i++) { // 少し深めに探索
+            if (!target) break;
+            target.dispatchEvent(hoverEvent);
+            target.dispatchEvent(enterEvent);
+            target.dispatchEvent(moveEvent);
+            target = target.parentElement;
+        }
+
+        console.log("Flow Auto Clicker: Waiting for 'Download' button...");
+        // 生成待ち。ダウンロードボタンが表示されるまで待機
+        const downloadBtn = await waitForElement("//button[.//i[contains(text(), 'download')]]", true, 10000);
+
+        // 少し待機
+        await new Promise(r => setTimeout(r, 1000));
+
+        console.log("Flow Auto Clicker: Clicking 'Download' button...");
+        downloadBtn.click();
 
         console.log("Flow Auto Clicker: Automation sequence completed.");
 
