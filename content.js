@@ -1,7 +1,12 @@
 console.log("Flow Auto Clicker: Script loaded");
 
-// 設定：入力するテキスト
-const PROMPT_TEXT = "可愛いアヒルのイラスト";
+// 設定：入力するテキスト（URLパラメータ "prompt" があればそれを使用、なければデフォルト）
+const urlParams = new URLSearchParams(window.location.search);
+const promptParam = urlParams.get('prompt');
+// デコード処理が必要な場合は自動で行われるが、念のため
+const PROMPT_TEXT = promptParam ? decodeURIComponent(promptParam) : "可愛いアヒルのイラスト";
+
+console.log(`Flow Auto Clicker: Target prompt is "${PROMPT_TEXT}"`);
 
 /**
  * 指定されたXPathまたはCSSセレクタに一致する要素が現れるまで待機する関数
