@@ -162,7 +162,17 @@ async function runAutomation() {
 
 // 実行開始
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', runAutomation);
+    document.addEventListener('DOMContentLoaded', () => {
+        if (promptParam) {
+            runAutomation();
+        } else {
+            console.log("Flow Auto Clicker: No prompt parameter found. Automation skipped.");
+        }
+    });
 } else {
-    runAutomation();
+    if (promptParam) {
+        runAutomation();
+    } else {
+        console.log("Flow Auto Clicker: No prompt parameter found. Automation skipped.");
+    }
 }
