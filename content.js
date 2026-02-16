@@ -216,6 +216,23 @@ async function runAutomation() {
         console.log("Flow Auto Clicker: Clicking 'Download' button...");
         downloadBtn.click();
 
+        // 追加: モデルによってダウンロードオプション (1K, 2K...) が出る場合がある
+        console.log("Flow Auto Clicker: Checking for download options (1K)...");
+        try {
+            await new Promise(r => setTimeout(r, 2000));
+            // "1K" を含む要素を探す (ポップアップメニュー内)
+            // テキストを含む span や div を探す
+            const option1k = await waitForElement("//*[contains(text(), '1K')]", true, 3000);
+            if (option1k) {
+                console.log("Flow Auto Clicker: '1K' download option found. Clicking...");
+                option1k.click();
+            } else {
+                console.log("Flow Auto Clicker: No '1K' option found (continuing)...");
+            }
+        } catch (e) {
+            console.log("Flow Auto Clicker: Download option check timed out or failed (likely direct download).");
+        }
+
         console.log("Flow Auto Clicker: Waiting for download to start...");
         // ダウンロード開始の猶予として3秒待機
         await new Promise(r => setTimeout(r, 3000));
