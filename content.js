@@ -1,7 +1,7 @@
 console.log("Flow Auto Clicker: Script loaded");
 
 // 設定：入力するテキスト
-const PROMPT_TEXT = "指定の文字列";
+const PROMPT_TEXT = "可愛いアヒルのイラスト";
 
 /**
  * 指定されたXPathまたはCSSセレクタに一致する要素が現れるまで待機する関数
@@ -78,12 +78,20 @@ async function runAutomation() {
         textarea.dispatchEvent(new Event('change', { bubbles: true }));
 
         console.log("Flow Auto Clicker: Waiting for 'Create' button...");
-        const createBtn = await waitForElement("//button[contains(., '作成')]", true);
+        // 「arrow_forward」アイコンを含むボタン（＝作成ボタン）を検索
+        // ノート: 「作成」テキストで検索すると「画像を作成」ボタンもヒットしてしまうため、アイコンで特定する
+        const createBtn = await waitForElement("//button[.//i[contains(text(), 'arrow_forward')]]", true);
 
         // UIの更新待ち
         await new Promise(r => setTimeout(r, 1000));
 
-        console.log("Flow Auto Clicker: Clicking 'Create' button...");
+        console.log("Flow Auto Clicker: Clicking 'Create' button (Attempt 1)...");
+        createBtn.click();
+
+        // 自動補完メニューなどを閉じるためのクリックになる可能性があるため、少し待って再クリック
+        await new Promise(r => setTimeout(r, 1000));
+
+        console.log("Flow Auto Clicker: Clicking 'Create' button (Attempt 2)...");
         createBtn.click();
 
         console.log("Flow Auto Clicker: Automation sequence completed.");
