@@ -140,7 +140,10 @@ async function runAutomation() {
         };
 
         const newImage = await waitForNewImage(initialImgCount);
-        console.log("Flow Auto Clicker: New image found. Simulating hover...", newImage);
+        console.log("Flow Auto Clicker: New image found. Waiting before hover...");
+        await new Promise(r => setTimeout(r, 1000));
+
+        console.log("Flow Auto Clicker: Simulating hover...", newImage);
 
         // 新しい画像要素とその親要素にホバーイベントを送る
         let target = newImage;
@@ -161,8 +164,9 @@ async function runAutomation() {
         // 生成待ち。ダウンロードボタンが表示されるまで待機
         const downloadBtn = await waitForElement("//button[.//i[contains(text(), 'download')]]", true, 10000);
 
-        // 少し待機
-        await new Promise(r => setTimeout(r, 1000));
+        // 少し待機（ダウンロード失敗防止のため長めに）
+        console.log("Flow Auto Clicker: Waiting before clicking download...");
+        await new Promise(r => setTimeout(r, 3000));
 
         console.log("Flow Auto Clicker: Clicking 'Download' button...");
         downloadBtn.click();
