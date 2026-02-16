@@ -141,6 +141,13 @@ async function runAutomation() {
         console.log("Flow Auto Clicker: Clicking 'Download' button...");
         downloadBtn.click();
 
+        console.log("Flow Auto Clicker: Waiting for download to start...");
+        // ダウンロード開始の猶予として3秒待機
+        await new Promise(r => setTimeout(r, 3000));
+
+        console.log("Flow Auto Clicker: Closing tab...");
+        chrome.runtime.sendMessage({ action: "close_tab" });
+
         console.log("Flow Auto Clicker: Automation sequence completed.");
 
     } catch (error) {
