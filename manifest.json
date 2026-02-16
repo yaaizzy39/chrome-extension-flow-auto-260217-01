@@ -11,15 +11,25 @@
     "https://labs.google/*"
   ],
   "action": {
-    "default_title": "Flowを開く"
+    "default_title": "Flowを開く",
+    "default_icon": "icon-flow-260216-01.png"
+  },
+  "icons": {
+    "16": "icon-flow-260216-01.png",
+    "48": "icon-flow-260216-01.png",
+    "128": "icon-flow-260216-01.png"
   },
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://labs.google/fx/ja/tools/flow*"],
-      "js": ["content.js"],
+      "matches": [
+        "https://labs.google/fx/ja/tools/flow*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ]
