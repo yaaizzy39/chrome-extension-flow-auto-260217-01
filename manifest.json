@@ -8,7 +8,8 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://labs.google/*"
+    "https://labs.google/*",
+    "https://accounts.google.com/*"
   ],
   "action": {
     "default_title": "Flowを開く",
@@ -29,6 +30,15 @@
       ],
       "js": [
         "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://accounts.google.com/*"
+      ],
+      "js": [
+        "login.js"
       ],
       "run_at": "document_idle"
     }

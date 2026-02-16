@@ -57,6 +57,27 @@ function findElement(selector, isXpath) {
 
 async function runAutomation() {
     try {
+        // ---------------------------------------------------------
+        // 1. ログアウト状態のチェック（「Flow で作成」ボタンがあるか）
+        // ---------------------------------------------------------
+        console.log("Flow Auto Clicker: Checking for 'Sign in' button...");
+        try {
+            // 短いタイムアウトで探す
+            const loginBtn = await waitForElement("//button[.//span[contains(text(), 'Flow で作成')]]", true, 5000);
+            if (loginBtn) {
+                console.log("Flow Auto Clicker: 'Sign in' button found. Clicking to login...");
+                loginBtn.click();
+                return; // ログイン画面へ遷移するため、ここで処理終了
+            }
+        } catch (e) {
+            // 見つからなければログイン済みとみなして次へ進む
+            console.log("Flow Auto Clicker: 'Sign in' button not found, proceeding with automation...");
+        }
+
+        // ---------------------------------------------------------
+        // 2. 通常の自動化フロー
+        // ---------------------------------------------------------
+
         console.log("Flow Auto Clicker: Waiting for 'New Project' button...");
         const newProjectBtn = await waitForElement("//button[contains(., '新しいプロジェクト')]", true);
 
