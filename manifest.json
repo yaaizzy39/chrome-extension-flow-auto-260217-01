@@ -5,7 +5,8 @@
   "description": "Google Labs Flowを開き、「新しいプロジェクト」ボタンを自動的にクリックします。",
   "permissions": [
     "tabs",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "https://labs.google/*",
@@ -13,7 +14,12 @@
   ],
   "action": {
     "default_title": "Flowを開く",
-    "default_icon": "icon-flow-260216-01.png"
+    "default_icon": "icon-flow-260216-01.png",
+    "default_popup": "popup.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
   },
   "icons": {
     "16": "icon-flow-260216-01.png",
@@ -41,6 +47,18 @@
         "login.js"
       ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "caracter_images/*.png",
+        "caracter_images/*.jpg",
+        "caracter_images/*.webp"
+      ],
+      "matches": [
+        "https://labs.google/*"
+      ]
     }
   ]
 }

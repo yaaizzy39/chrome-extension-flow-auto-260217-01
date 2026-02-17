@@ -4,9 +4,14 @@ console.log("Flow Auto Clicker: Script loaded");
 const urlParams = new URLSearchParams(window.location.search);
 const promptParam = urlParams.get('prompt');
 // デコード処理が必要な場合は自動で行われるが、念のため
-const PROMPT_TEXT = promptParam ? decodeURIComponent(promptParam) : "可愛いアヒルのイラスト";
+let PROMPT_TEXT = promptParam ? decodeURIComponent(promptParam) : "可愛いアヒルのイラスト";
 
-console.log(`Flow Auto Clicker: Target prompt is "${PROMPT_TEXT}"`);
+console.log(`Flow Auto Clicker: Initial target prompt is "${PROMPT_TEXT}"`);
+
+// リファレンス画像のリスト (将来的に動的に取得できると良いが、現在は固定)
+const REFERENCE_IMAGES = [
+    'Neru-caracter-sheet-260217-01.png'
+];
 
 /**
  * 指定されたXPathまたはCSSセレクタに一致する要素が現れるまで待機する関数
@@ -163,8 +168,96 @@ async function configureSettings(modelName, targetImageCount = 1) {
     }
 }
 
+/**
+ * 画像ファイルをアップロードする関数
+ */
+async function uploadReferenceImages() {
+    console.log("Flow Auto Clicker: Starting reference image upload...");
+
+    for (const imageName of REFERENCE_IMAGES) {
+        try {
+            console.log(`Flow Auto Clicker: Processing image ${imageName}...`);
+
+            // 1. 「参照画像追加ボタン」を探してクリック
+            // アイコンが 'add' のボタン
+            const addBtn = await waitForElement("//button[.//i[contains(text(), 'add')]]", true, 5000);
+            console.log("Flow Auto Clicker: Clicking 'Add Reference Image' button...");
+            addBtn.click();
+
+            await new Promise(r => setTimeout(r, 1000));
+
+            // 2. 「アップロードファイル選択ボタン」を探す (input type="file" を探すのが確実)
+            // ボタンの見た目: "upload" アイコン、 "アップロード" テキスト
+            // しかし、selenium等と同様、input要素に直接値をセットする
+            // input type="file" は通常非表示になっている
+
+            // NOTE: 複数の input type="file" がある可能性があるため、可視の「アップロード」ボタンの近くにあるものを探すか、
+            // ページ内のすべての input type="file" を試すか、直近で追加されたものを探す
+
+            // まずは「アップロード」というテキストを含む要素を探し、その近くの input を探してみる
+            // あるいは、ダイアログが開いているはずなので、そのダイアログ内の input を探す
+
+            const fileInput = document.querySelector('input[type="file"]');
+
+            if (!fileInput) {
+                console.warn("Flow Auto Clicker: File input element not found.");
+                continue;
+            }
+
+            console.log("Flow Auto Clicker: Found file input element.");
+
+            // 3. 画像ファイルをロード
+            const imageUrl = chrome.runtime.getURL(`caracter_images/${imageName}`);
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const file = new File([blob], imageName, { type: blob.type });
+
+            // 4. Inputにファイルをセット
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
+
+            // 5. Changeイベント発火
+            console.log("Flow Auto Clicker: Dispatching change event...");
+            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+            // 待機（アップロード処理とUI更新のため）
+            await new Promise(r => setTimeout(r, 2000));
+
+            // 6. 「切り抜きして保存」ボタンの処理 (存在する場合)
+            console.log("Flow Auto Clicker: Checking for 'Crop and Save' button...");
+            try {
+                // ボタンのテキストまたはアイコンで探す
+                const cropSaveBtn = await waitForElement("//button[contains(., '切り抜きして保存')]", true, 5000);
+                if (cropSaveBtn) {
+                    console.log("Flow Auto Clicker: 'Crop and Save' button found. Clicking...");
+                    cropSaveBtn.click();
+                    // ダイアログが閉じるのを待つ
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            } catch (e) {
+                console.log("Flow Auto Clicker: 'Crop and Save' button not found (skipped or not needed).");
+            }
+
+        } catch (e) {
+            console.error(`Flow Auto Clicker: Failed to upload ${imageName}:`, e);
+        }
+    }
+}
+
 async function runAutomation() {
     try {
+        // 設定読み込み
+        const settings = await chrome.storage.sync.get({ useReferenceImage: false });
+        console.log(`Flow Auto Clicker: Settings loaded. useReferenceImage = ${settings.useReferenceImage}`);
+
+        if (settings.useReferenceImage) {
+            const suffix = " この参照画像ファイルのキャラクターを1つだけ小さく登場させて、いろいろなポーズや表情にしてください。";
+            PROMPT_TEXT += suffix;
+            console.log(`Flow Auto Clicker: Amended prompt: "${PROMPT_TEXT}"`);
+        }
+
         // ---------------------------------------------------------
         // 1. ログアウト状態のチェック（「Flow で作成」ボタンがあるか）
         // ---------------------------------------------------------
@@ -204,6 +297,13 @@ async function runAutomation() {
         // モデル・設定選択 (Nano Banana Pro, 1枚) - 初期選択
         // ---------------------------------------------------------
         await configureSettings('Nano Banana Pro', 1);
+
+        // ---------------------------------------------------------
+        // 参照画像アップロード
+        // ---------------------------------------------------------
+        if (settings.useReferenceImage) {
+            await uploadReferenceImages();
+        }
         // ---------------------------------------------------------
 
         console.log("Flow Auto Clicker: Waiting for textarea...");
@@ -256,6 +356,15 @@ async function runAutomation() {
             if (document.body.innerText.includes("1日あたりの上限")) {
                 console.warn("Flow Auto Clicker: Limit error detected via text check.");
                 generationStarted = false;
+                break;
+            }
+
+            // 追加: ブロック要素（ダイアログなど）がある場合はフォールバック（モデル切り替え）を行わない
+            // 「切り抜きして保存」ボタンが表示されている場合など
+            const cropBtn = findElement("//button[contains(., '切り抜きして保存')]", true);
+            if (cropBtn && cropBtn.offsetParent !== null) {
+                console.log("Flow Auto Clicker: Crop dialog detected. Skipping model switch fallback.");
+                generationStarted = true; // フォールバックを回避するためにStartedとする
                 break;
             }
         }
