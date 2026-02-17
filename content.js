@@ -88,7 +88,7 @@ async function configureSettings(modelName, targetImageCount = 1) {
     const closeSettings = async () => {
         console.log("Flow Auto Clicker: Closing settings...");
         document.body.click();
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500)); // 1000 -> 1500
         // 念のためもう一度
         try { document.body.click(); } catch (_) { }
     };
@@ -98,7 +98,7 @@ async function configureSettings(modelName, targetImageCount = 1) {
         const settingsBtn = await waitForElement("//button[.//i[contains(text(), 'tune')]]", true, 5000);
         console.log("Flow Auto Clicker: Opening settings...");
         settingsBtn.click();
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500)); // 1000 -> 1500
 
         // -------------------------------------------------
         // 1. モデル選択
@@ -107,7 +107,7 @@ async function configureSettings(modelName, targetImageCount = 1) {
         const modelDropdown = await waitForElement("//button[.//span[contains(text(), 'モデル')]]", true, 5000);
         console.log("Flow Auto Clicker: Opening model dropdown...");
         modelDropdown.click();
-        await new Promise(r => setTimeout(r, 2000)); // メニュー展開待ち
+        await new Promise(r => setTimeout(r, 2500)); // 2000 -> 2500 メニュー展開待ち
 
         // 指定されたモデルを選択
         let modelXpath;
@@ -127,7 +127,7 @@ async function configureSettings(modelName, targetImageCount = 1) {
         } else {
             console.warn(`Flow Auto Clicker: '${modelName}' option not found within timeout.`);
         }
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500)); // 1000 -> 1500
 
         // -------------------------------------------------
         // 2. 枚数選択 ("プロンプトごとの出力")
@@ -139,7 +139,7 @@ async function configureSettings(modelName, targetImageCount = 1) {
             const countDropdown = await waitForElement("//button[.//span[contains(text(), 'プロンプトごとの出力')]]", true, 3000);
             if (countDropdown) {
                 countDropdown.click();
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 1500)); // 1000 -> 1500
 
                 // 数値のオプションを選択 (例: "1")
                 // 複数のパターンで探す
@@ -158,7 +158,7 @@ async function configureSettings(modelName, targetImageCount = 1) {
                 } else {
                     console.warn(`Flow Auto Clicker: Count option '${targetImageCount}' not found.`);
                 }
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 1500)); // 1000 -> 1500
             } else {
                 console.warn("Flow Auto Clicker: Image count dropdown not found.");
             }
@@ -229,7 +229,7 @@ async function selectReferenceImagesFromHistory(count) {
             console.log("Flow Auto Clicker: Clicking 'Add Reference Image' button...");
             // 確実にクリックするためにスクロール
             addBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 1000)); // 500 -> 1000
             addBtn.click();
 
             // 修正: 最新の画像がロードされるのを待つため、待機時間を延長 (2秒 -> 5秒)
@@ -261,7 +261,7 @@ async function selectReferenceImagesFromHistory(count) {
                 // 3. 「切り抜きして保存」ボタンの処理 (存在する場合)
                 // 画像クリック後にダイアログが出るか、そのまま追加されるか。
                 // ユーザー報告によると「切り抜きして保存」が出る可能性がある。
-                await new Promise(r => setTimeout(r, 2000));
+                await new Promise(r => setTimeout(r, 2500)); // 2000 -> 2500
 
                 console.log("Flow Auto Clicker: Checking for 'Crop and Save' button...");
                 try {
@@ -271,14 +271,14 @@ async function selectReferenceImagesFromHistory(count) {
                         console.log("Flow Auto Clicker: 'Crop and Save' button found. Clicking...");
                         cropSaveBtn.click();
                         // ダイアログが閉じるのを待つ
-                        await new Promise(r => setTimeout(r, 2000));
+                        await new Promise(r => setTimeout(r, 2500)); // 2000 -> 2500
                     }
                 } catch (e) {
                     console.log("Flow Auto Clicker: 'Crop and Save' button not found (skipped or not needed).");
                 }
 
                 // 追加後のUI更新待ち
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 1500)); // 1000 -> 1500
 
             } else {
                 console.warn(`Flow Auto Clicker: Not enough history images found. Requested index ${i}, found ${historyBtns.snapshotLength}.`);
@@ -346,7 +346,7 @@ async function runAutomation() {
         const imageBtn = await waitForElement("//button[contains(., '画像')]", true);
 
         // 少し待機してからクリック
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 1000)); // 500 -> 1000
 
         console.log("Flow Auto Clicker: Clicking 'Image' button...");
         imageBtn.click();
@@ -377,7 +377,7 @@ async function runAutomation() {
         const createBtn = await waitForElement("//button[.//i[contains(text(), 'arrow_forward')]]", true);
 
         // UIの更新待ち
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500)); // 1000 -> 1500
 
         // 事前に現在の画像数をカウント
         const initialImgCount = document.querySelectorAll('img').length;
@@ -387,7 +387,7 @@ async function runAutomation() {
         createBtn.click();
 
         // 自動補完メニューなどを閉じるためのクリックになる可能性があるため、少し待って再クリック
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500)); // 1000 -> 1500
 
         console.log("Flow Auto Clicker: Clicking 'Create' button (Attempt 2)...");
         createBtn.click();
@@ -456,6 +456,8 @@ async function runAutomation() {
             console.warn("Flow Auto Clicker: Generation did not start within timeout. Switching to Nano Banana...");
 
             // フォールバック: Nano Banana を選択 (枚数も1枚に設定)
+            // ここで少し待ってから切り替え開始
+            await new Promise(r => setTimeout(r, 1000));
             const switched = await configureSettings('Nano Banana', 1);
 
             if (switched) {
@@ -472,12 +474,12 @@ async function runAutomation() {
                 textarea.value = PROMPT_TEXT;
                 textarea.dispatchEvent(new Event('input', { bubbles: true }));
                 textarea.dispatchEvent(new Event('change', { bubbles: true }));
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 2000)); // 500 -> 2000 (遅いPC対策)
 
                 // 少し待ってから作成ボタンを再クリック
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 3000)); // 1000 -> 3000 (十分待つ)
                 createBtn.click();
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 3000)); // 1000 -> 3000 (再クリックもゆっくり)
                 createBtn.click(); // 念のため2回
             } else {
                 console.error("Flow Auto Clicker: Failed to switch model.");
