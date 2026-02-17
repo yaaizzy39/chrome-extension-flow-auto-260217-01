@@ -402,12 +402,35 @@ async function runAutomation() {
         // ---------------------------------------------------------
         console.log("Flow Auto Clicker: Verifying generation start...");
         let generationStarted = false;
+        let possibleStart = false; // "作成"ボタン無効化などの「弱い成功シグナル」フラグ
 
         // 15秒間チェック (1秒おき) - UI変化も監視して誤検知を防ぐ
         for (let i = 0; i < 15; i++) {
             await new Promise(r => setTimeout(r, 1000));
 
-            // 1. 画像数が増えているかチェック (既存)
+            // 1. エラーメッセージチェック (最優先・Normalized Text)
+            // 空白を除去してテキストをチェック (XPathより確実)
+            const bodyText = document.body.innerText.replace(/\s+/g, '');
+            if (bodyText.includes("上限に達しました") || bodyText.includes("1日あたりの上限")) {
+                console.warn("Flow Auto Clicker: Limit error detected via normalized text.");
+                generationStarted = false;
+                possibleStart = false;
+
+                console.log("Flow Auto Clicker: Dismissing error dialog...");
+                // XPathで要素を探してクリック (ベストエフォート)
+                try {
+                    const errElem = document.evaluate("//*[contains(text(), '上限に達しました') or contains(., '上限に達しました')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                    if (errElem) errElem.click();
+                } catch (e) { }
+
+                try { document.elementFromPoint(10, 10).click(); } catch (e) { }
+                document.body.click();
+                await new Promise(r => setTimeout(r, 2000));
+
+                break; // エラー検知 -> ループ脱出 -> フォールバックへ
+            }
+
+            // 2. 画像数が増えているかチェック (確実な成功)
             const currentCount = document.querySelectorAll('img').length;
             if (currentCount > initialImgCount) {
                 console.log("Flow Auto Clicker: Generation started (New image detected)!");
@@ -415,15 +438,8 @@ async function runAutomation() {
                 break;
             }
 
-            // 2. エラーメッセージチェック (既存・重要)
-            if (document.body.innerText.includes("1日あたりの上限")) {
-                console.warn("Flow Auto Clicker: Limit error detected via text check.");
-                generationStarted = false; // エラーなのでfalseのままbreakし、フォールバックへ
-                break;
-            }
-
-            // 3. UI状態の変化をチェック (生成中を示す要素の出現)
-            // - Stopボタン (生成中止ボタン) の出現: <button><i>stop</i></button>
+            // 3. UI状態の変化をチェック (生成中を示す要素の出現 - 確実な成功)
+            // - Stopボタン (生成中止ボタン)
             const stopBtn = document.evaluate("//button[.//i[contains(text(), 'stop')]]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             if (stopBtn) {
                 console.log("Flow Auto Clicker: Generation started (Stop button detected)!");
@@ -439,21 +455,39 @@ async function runAutomation() {
                 break;
             }
 
-            // - 元の「作成」ボタンが disabled になっているか
-            //   (DOMが書き換わっている可能性もあるので、再取得を試みる)
+            // - 元の「作成」ボタンが disabled になっているか (弱い成功シグナル)
+            //   これだけでは break せず、エラーが出ないか監視を続ける
             const arrowBtn = document.evaluate("//button[.//i[contains(text(), 'arrow_forward')]]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             if (arrowBtn && arrowBtn.disabled) {
-                console.log("Flow Auto Clicker: Generation started (Create button disabled)!");
-                generationStarted = true;
-                break;
+                if (!possibleStart) {
+                    console.log("Flow Auto Clicker: Create button disabled (Potential start). Continuing checks for error...");
+                }
+                possibleStart = true;
             }
 
-            // 4. ダイアログ検出 (既存ロジックの改善)
+            // 4. ダイアログ検出 (確実な成功)
             const cropBtn = findElement("//button[contains(., '切り抜きして保存')]", true);
             if (cropBtn && cropBtn.offsetParent !== null) {
                 console.log("Flow Auto Clicker: Crop dialog detected. Skipping model switch fallback.");
-                generationStarted = true; // フォールバック回避
+                generationStarted = true;
                 break;
+            }
+        }
+
+        // ループ終了後、確定成功していなくても「弱いシグナル」があり、かつ「エラー」がなければ成功とみなす
+        if (!generationStarted && possibleStart) {
+            // 念のため最後にもう一度エラーチェック (XPathで)
+            const finalErrorCheck = document.evaluate("//*[contains(text(), '1日あたりの上限') or contains(., '1日あたりの上限')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (finalErrorCheck) {
+                console.warn("Flow Auto Clicker: Limit error detected at final check via XPath.");
+                generationStarted = false;
+                try { finalErrorCheck.click(); } catch (e) { }
+                try { document.elementFromPoint(10, 10).click(); } catch (e) { }
+                document.body.click();
+                await new Promise(r => setTimeout(r, 1000));
+            } else {
+                console.log("Flow Auto Clicker: Loop finished with 'Create button disabled' and NO error. Assuming generation started.");
+                generationStarted = true;
             }
         }
 
@@ -461,8 +495,8 @@ async function runAutomation() {
             console.warn("Flow Auto Clicker: Generation did not start within timeout. Switching to Nano Banana...");
 
             // フォールバック: Nano Banana を選択 (枚数も1枚に設定)
-            // ここで少し待ってから切り替え開始
-            await new Promise(r => setTimeout(r, 1000));
+            // ここで少し待ってから切り替え開始 (エラーダイアログが閉じるのを待つため少し長めに)
+            await new Promise(r => setTimeout(r, 2500));
             const switched = await configureSettings('Nano Banana', 1);
 
             if (switched) {
@@ -507,7 +541,55 @@ async function runAutomation() {
             throw new Error("Timeout waiting for new image");
         };
 
-        const newImage = await waitForNewImage(initialImgCount);
+        let newImage;
+        try {
+            newImage = await waitForNewImage(initialImgCount);
+        } catch (e) {
+            if (e.message === 'LimitReached') {
+                console.warn("Flow Auto Clicker: Limit error detected during wait. Triggering late fallback...");
+
+                // 1. エラーダイアログを閉じる
+                const errorElement = document.evaluate("//*[contains(text(), '上限に達しました') or contains(., '上限に達しました')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                if (errorElement) {
+                    try { errorElement.click(); } catch (e) { }
+                    try { document.elementFromPoint(10, 10).click(); } catch (e) { }
+                    document.body.click();
+                }
+                await new Promise(r => setTimeout(r, 2500));
+
+                // 2. 設定変更 (Nano Banana, 1枚)
+                const switched = await configureSettings('Nano Banana', 1);
+
+                if (switched) {
+                    // 3. 参照画像 (必要なら)
+                    if (settings.useReferenceImage) {
+                        await selectReferenceImagesFromHistory(settings.referenceImageCount);
+                    }
+
+                    // 4. プロンプト再入力
+                    const textarea = await waitForElement("#PINHOLE_TEXT_AREA_ELEMENT_ID", false);
+                    textarea.focus();
+                    textarea.value = PROMPT_TEXT;
+                    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                    textarea.dispatchEvent(new Event('change', { bubbles: true }));
+                    await new Promise(r => setTimeout(r, 2000));
+
+                    // 5. 作成ボタン
+                    const createBtn = await waitForElement("//button[.//i[contains(text(), 'arrow_forward')]]", true);
+                    createBtn.click();
+                    await new Promise(r => setTimeout(r, 3000));
+                    createBtn.click(); // 念のため
+
+                    // 6. 再待機
+                    newImage = await waitForNewImage(initialImgCount);
+                } else {
+                    throw new Error("Late fallback switch failed");
+                }
+            } else {
+                throw e; // 他のエラーはそのままスロー
+            }
+        }
+
         console.log("Flow Auto Clicker: New image found. Waiting before hover...");
         await new Promise(r => setTimeout(r, 1000));
 
