@@ -398,31 +398,56 @@ async function runAutomation() {
         console.log("Flow Auto Clicker: Verifying generation start...");
         let generationStarted = false;
 
-        // 7秒間チェック (1秒おき)
-        for (let i = 0; i < 7; i++) {
+        // 15秒間チェック (1秒おき) - UI変化も監視して誤検知を防ぐ
+        for (let i = 0; i < 15; i++) {
             await new Promise(r => setTimeout(r, 1000));
 
-            // 画像数が増えているかチェック
+            // 1. 画像数が増えているかチェック (既存)
             const currentCount = document.querySelectorAll('img').length;
             if (currentCount > initialImgCount) {
-                console.log("Flow Auto Clicker: Generation started!");
+                console.log("Flow Auto Clicker: Generation started (New image detected)!");
                 generationStarted = true;
                 break;
             }
 
-            // 念のためエラーメッセージもチェック (表示されていたら即打ち切り)
+            // 2. エラーメッセージチェック (既存・重要)
             if (document.body.innerText.includes("1日あたりの上限")) {
                 console.warn("Flow Auto Clicker: Limit error detected via text check.");
-                generationStarted = false;
+                generationStarted = false; // エラーなのでfalseのままbreakし、フォールバックへ
                 break;
             }
 
-            // 追加: ブロック要素（ダイアログなど）がある場合はフォールバック（モデル切り替え）を行わない
-            // 「切り抜きして保存」ボタンが表示されている場合など
+            // 3. UI状態の変化をチェック (生成中を示す要素の出現)
+            // - Stopボタン (生成中止ボタン) の出現: <button><i>stop</i></button>
+            const stopBtn = document.evaluate("//button[.//i[contains(text(), 'stop')]]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (stopBtn) {
+                console.log("Flow Auto Clicker: Generation started (Stop button detected)!");
+                generationStarted = true;
+                break;
+            }
+
+            // - プログレスバーの出現
+            const progressBar = document.querySelector('[role="progressbar"]');
+            if (progressBar) {
+                console.log("Flow Auto Clicker: Generation started (Progress bar detected)!");
+                generationStarted = true;
+                break;
+            }
+
+            // - 元の「作成」ボタンが disabled になっているか
+            //   (DOMが書き換わっている可能性もあるので、再取得を試みる)
+            const arrowBtn = document.evaluate("//button[.//i[contains(text(), 'arrow_forward')]]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (arrowBtn && arrowBtn.disabled) {
+                console.log("Flow Auto Clicker: Generation started (Create button disabled)!");
+                generationStarted = true;
+                break;
+            }
+
+            // 4. ダイアログ検出 (既存ロジックの改善)
             const cropBtn = findElement("//button[contains(., '切り抜きして保存')]", true);
             if (cropBtn && cropBtn.offsetParent !== null) {
                 console.log("Flow Auto Clicker: Crop dialog detected. Skipping model switch fallback.");
-                generationStarted = true; // フォールバックを回避するためにStartedとする
+                generationStarted = true; // フォールバック回避
                 break;
             }
         }
