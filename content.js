@@ -297,7 +297,12 @@ async function selectReferenceImagesFromHistory(count) {
 async function runAutomation() {
     try {
         // 設定読み込み
-        const settings = await chrome.storage.sync.get({ useReferenceImage: false, referenceImageCount: 1, autoCloseTab: false });
+        const settings = await chrome.storage.sync.get({
+            useReferenceImage: false,
+            referenceImageCount: 1,
+            autoCloseTab: false,
+            referenceImageSuffix: " and a [very tiny] character from the attached image"
+        });
 
         // タグによる強制上書き
         if (forceUseRef) {
@@ -311,7 +316,7 @@ async function runAutomation() {
         console.log(`Flow Auto Clicker: Settings loaded (final). useReferenceImage = ${settings.useReferenceImage}, Count = ${settings.referenceImageCount}`);
 
         if (settings.useReferenceImage) {
-            const suffix = " この参照画像ファイルのキャラクターを1つだけ小さく登場させて、いろいろなポーズや表情にしてください。";
+            const suffix = settings.referenceImageSuffix;
             PROMPT_TEXT += suffix;
             console.log(`Flow Auto Clicker: Amended prompt: "${PROMPT_TEXT}"`);
         }
