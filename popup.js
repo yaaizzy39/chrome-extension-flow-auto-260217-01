@@ -1,38 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
     const useReferenceImageCheckbox = document.getElementById('useReferenceImage');
-    const referenceImageCountInput = document.getElementById('referenceImageCount');
-    const imageCountContainer = document.getElementById('imageCountContainer');
     const openFlowBtn = document.getElementById('openFlowBtn');
     const statusDiv = document.getElementById('status');
 
     // 設定をロードしてUIに反映
-    chrome.storage.sync.get({ useReferenceImage: false, referenceImageCount: 1 }, (items) => {
+    chrome.storage.sync.get({ useReferenceImage: false }, (items) => {
         useReferenceImageCheckbox.checked = items.useReferenceImage;
-        referenceImageCountInput.value = items.referenceImageCount;
-        toggleImageCountVisibility(items.useReferenceImage);
     });
 
     // チェックボックス変更時
     useReferenceImageCheckbox.addEventListener('change', () => {
-        const useReferenceImage = useReferenceImageCheckbox.checked;
-        toggleImageCountVisibility(useReferenceImage);
         saveSettings();
     });
-
-    // 枚数変更時
-    referenceImageCountInput.addEventListener('change', () => {
-        saveSettings();
-    });
-
-    function toggleImageCountVisibility(show) {
-        if (imageCountContainer) {
-            imageCountContainer.style.display = show ? 'block' : 'none';
-        }
-    }
 
     function saveSettings() {
         const useReferenceImage = useReferenceImageCheckbox.checked;
-        const referenceImageCount = parseInt(referenceImageCountInput.value, 10) || 1;
+        const referenceImageCount = 1; // 常に1枚
 
         chrome.storage.sync.set({
             useReferenceImage: useReferenceImage,
