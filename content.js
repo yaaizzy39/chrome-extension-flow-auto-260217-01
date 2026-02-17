@@ -281,7 +281,7 @@ async function selectReferenceImagesFromHistory(count) {
 async function runAutomation() {
     try {
         // 設定読み込み
-        const settings = await chrome.storage.sync.get({ useReferenceImage: false, referenceImageCount: 1 });
+        const settings = await chrome.storage.sync.get({ useReferenceImage: false, referenceImageCount: 1, autoCloseTab: false });
         console.log(`Flow Auto Clicker: Settings loaded. useReferenceImage = ${settings.useReferenceImage}, Count = ${settings.referenceImageCount}`);
 
         if (settings.useReferenceImage) {
@@ -502,8 +502,13 @@ async function runAutomation() {
         // ダウンロード開始の猶予として3秒待機
         await new Promise(r => setTimeout(r, 3000));
 
-        console.log("Flow Auto Clicker: Closing tab... (SKIPPED for debugging)");
-        // chrome.runtime.sendMessage({ action: "close_tab" });
+        console.log("Flow Auto Clicker: Closing tab check...");
+        if (settings.autoCloseTab) {
+            console.log("Flow Auto Clicker: Auto-close enabled. Closing tab...");
+            chrome.runtime.sendMessage({ action: "close_tab" });
+        } else {
+            console.log("Flow Auto Clicker: Auto-close disabled. Keeping tab open.");
+        }
 
         console.log("Flow Auto Clicker: Automation sequence completed.");
 

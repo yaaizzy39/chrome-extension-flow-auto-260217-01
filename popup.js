@@ -1,11 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     const useReferenceImageCheckbox = document.getElementById('useReferenceImage');
+    const autoCloseTabCheckbox = document.getElementById('autoCloseTab');
     const openFlowBtn = document.getElementById('openFlowBtn');
     const statusDiv = document.getElementById('status');
 
     // 設定をロードしてUIに反映
-    chrome.storage.sync.get({ useReferenceImage: false }, (items) => {
+    chrome.storage.sync.get({ useReferenceImage: false, autoCloseTab: false }, (items) => {
         useReferenceImageCheckbox.checked = items.useReferenceImage;
+        autoCloseTabCheckbox.checked = items.autoCloseTab;
     });
 
     // チェックボックス変更時
@@ -13,12 +15,18 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     });
 
+    autoCloseTabCheckbox.addEventListener('change', () => {
+        saveSettings();
+    });
+
     function saveSettings() {
         const useReferenceImage = useReferenceImageCheckbox.checked;
+        const autoCloseTab = autoCloseTabCheckbox.checked;
         const referenceImageCount = 1; // 常に1枚
 
         chrome.storage.sync.set({
             useReferenceImage: useReferenceImage,
+            autoCloseTab: autoCloseTab,
             referenceImageCount: referenceImageCount
         }, () => {
             // 保存完了表示
