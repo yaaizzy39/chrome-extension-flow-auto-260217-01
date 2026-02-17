@@ -4,7 +4,23 @@ console.log("Flow Auto Clicker: Script loaded");
 const urlParams = new URLSearchParams(window.location.search);
 const promptParam = urlParams.get('prompt');
 // デコード処理が必要な場合は自動で行われるが、念のため
-let PROMPT_TEXT = promptParam ? decodeURIComponent(promptParam) : "可愛いアヒルのイラスト";
+let rawPrompt = promptParam ? decodeURIComponent(promptParam) : "可愛いアヒルのイラスト";
+
+// [ref] / [notref] タグの処理
+let forceUseRef = false;
+let forceNoRef = false;
+
+if (rawPrompt.startsWith("[ref]")) {
+    forceUseRef = true;
+    rawPrompt = rawPrompt.slice("[ref]".length);
+    console.log("Flow Auto Clicker: Detected [ref] tag. Forcing reference image usage.");
+} else if (rawPrompt.startsWith("[notref]")) {
+    forceNoRef = true;
+    rawPrompt = rawPrompt.slice("[notref]".length);
+    console.log("Flow Auto Clicker: Detected [notref] tag. Forcing NO reference image usage.");
+}
+
+let PROMPT_TEXT = rawPrompt;
 
 console.log(`Flow Auto Clicker: Initial target prompt is "${PROMPT_TEXT}"`);
 
@@ -282,7 +298,17 @@ async function runAutomation() {
     try {
         // 設定読み込み
         const settings = await chrome.storage.sync.get({ useReferenceImage: false, referenceImageCount: 1, autoCloseTab: false });
-        console.log(`Flow Auto Clicker: Settings loaded. useReferenceImage = ${settings.useReferenceImage}, Count = ${settings.referenceImageCount}`);
+
+        // タグによる強制上書き
+        if (forceUseRef) {
+            settings.useReferenceImage = true;
+            console.log("Flow Auto Clicker: Overriding settings -> useReferenceImage = true (due to [ref])");
+        } else if (forceNoRef) {
+            settings.useReferenceImage = false;
+            console.log("Flow Auto Clicker: Overriding settings -> useReferenceImage = false (due to [notref])");
+        }
+
+        console.log(`Flow Auto Clicker: Settings loaded (final). useReferenceImage = ${settings.useReferenceImage}, Count = ${settings.referenceImageCount}`);
 
         if (settings.useReferenceImage) {
             const suffix = " この参照画像ファイルのキャラクターを1つだけ小さく登場させて、いろいろなポーズや表情にしてください。";
