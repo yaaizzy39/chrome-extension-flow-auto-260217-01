@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.sync.get({
         useReferenceImage: false,
         autoCloseTab: false,
-        referenceImageSuffix: " and a [very tiny] character from the attached image"
+        referenceImageSuffix: " and a [very tiny] character in various poses and expressions from the attached image"
     }, (items) => {
         useReferenceImageCheckbox.checked = items.useReferenceImage;
         autoCloseTabCheckbox.checked = items.autoCloseTab;

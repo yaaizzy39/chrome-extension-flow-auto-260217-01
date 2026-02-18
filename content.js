@@ -301,7 +301,7 @@ async function runAutomation() {
             useReferenceImage: false,
             referenceImageCount: 1,
             autoCloseTab: false,
-            referenceImageSuffix: " and a [very tiny] character from the attached image"
+            referenceImageSuffix: " and a [very tiny] character in various poses and expressions from the attached image"
         });
 
         // タグによる強制上書き

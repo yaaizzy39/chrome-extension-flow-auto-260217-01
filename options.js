@@ -24,7 +24,7 @@ const restoreOptions = () => {
     chrome.storage.sync.get(
         {
             useReferenceImage: false,
-            referenceImageSuffix: " and a [very tiny] character from the attached image"
+            referenceImageSuffix: " and a [very tiny] character in various poses and expressions from the attached image"
         }, // デフォルト値
         (items) => {
             document.getElementById('useReferenceImage').checked = items.useReferenceImage;
